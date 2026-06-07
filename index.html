@@ -95,7 +95,6 @@
         .timer-box { color: #ff3333; }
         .score-box { color: var(--secondary); }
 
-        /* 빌런 전용 필드 (더 넓게 활용) */
         .game-field {
             flex: 1;
             width: 100%;
@@ -106,14 +105,13 @@
             border: 1px dashed rgba(0, 240, 255, 0.2);
         }
 
-        /* 💥 빌런 타겟 크기 1.5배 스케일업 및 터치 영역 확대 */
         .monster {
             position: absolute;
-            font-size: 1.8rem; /* 글자 크기 키움 */
+            font-size: 1.8rem;
             font-weight: 900;
             color: #ffffff;
             background: linear-gradient(135deg, #2e1065, #3b0764);
-            padding: 1.5rem 2rem; /* 누르기 쉽게 패딩 대폭 확대 */
+            padding: 1.5rem 2rem;
             border-radius: 30px;
             border: 3px solid var(--primary);
             box-shadow: 0 0 30px var(--primary);
@@ -159,7 +157,6 @@
             transition: width 0.05s ease-out;
         }
 
-        /* 메가 사이즈 타격 이펙트 */
         .combo-effect {
             position: absolute;
             font-size: 3.5rem;
@@ -183,190 +180,4 @@
         }
 
         .win .result-main { color: var(--success); text-shadow: 0 0 20px var(--success); }
-        .lose .result-main { color: #ff3333; text-shadow: 0 0 20px #ff3333; }
-
-        .result-sub {
-            font-size: 1.2rem;
-            color: #94a3b8;
-            margin-bottom: 3rem;
-            white-space: pre-line;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <div id="scr-start" class="screen active">
-            <div class="game-title">오션중 학기말<br>👾 빌런 타격대 👾</div>
-            <button class="btn" id="btn-start">게임 시작</button>
-        </div>
-
-        <div id="scr-game" class="screen">
-            <div class="game-header">
-                <div class="score-box">HIT: <span id="txt-score">0</span> / 60</div>
-                <div class="timer-box">⏱️ <span id="txt-timer">20</span>s</div>
-            </div>
-            
-            <div class="game-field" id="field">
-                <div class="monster" id="target-monster">성적 마감 오류 ❌</div>
-            </div>
-
-            <div class="status-panel">
-                <div class="gauge-label">
-                    <span>스트레스 해소율</span>
-                    <span id="txt-progress">0%</span>
-                </div>
-                <div class="bar-outer">
-                    <div class="bar-inner" id="gauge"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="scr-result" class="screen">
-            <div class="result-main" id="res-title">결과</div>
-            <div class="result-sub" id="res-desc">설명</div>
-            <button class="btn" id="btn-retry" style="background: linear-gradient(135deg, var(--secondary), #00a0ff); box-shadow: 0 0 20px var(--secondary);">다시 도전</button>
-        </div>
-    </div>
-
-    <script>
-        // 🎯 밸런스 패치: 60회로 수정
-        const goal = 60; 
-        let score = 0;
-        let clock = 20;
-        let loop = null;
-        let comboCount = 0; // 연타 카운트 시스템 추가
-        const pool = ['성적 마감 오류 ❌', '나이스 상신 반려 ↩️', '학기말 생기부 지옥 📝'];
-
-        const scrStart = document.getElementById('scr-start');
-        const scrGame = document.getElementById('scr-game');
-        const scrResult = document.getElementById('scr-result');
-        const btnStart = document.getElementById('btn-start');
-        const btnRetry = document.getElementById('btn-retry');
-        const field = document.getElementById('field');
-        const monster = document.getElementById('target-monster');
-        const gauge = document.getElementById('gauge');
-        const txtScore = document.getElementById('txt-score');
-        const txtTimer = document.getElementById('txt-timer');
-        const txtProgress = document.getElementById('txt-progress');
-        const resTitle = document.getElementById('res-title');
-        const resDesc = document.getElementById('res-desc');
-
-        btnStart.addEventListener('click', runGame);
-        btnRetry.addEventListener('click', cleanRoom);
-        
-        monster.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = field.getBoundingClientRect();
-            smash(touch.clientX - rect.left, touch.clientY - rect.top);
-        });
-
-        monster.addEventListener('mousedown', (e) => {
-            if (!('ontouchstart' in window)) {
-                const rect = field.getBoundingClientRect();
-                smash(e.clientX - rect.left, e.clientY - rect.top);
-            }
-        });
-
-        function runGame() {
-            scrStart.classList.remove('active');
-            scrGame.classList.add('active');
-            warpMonster();
-            
-            loop = setInterval(() => {
-                clock--;
-                txtTimer.innerText = clock;
-                if (clock <= 0) gameOver();
-            }, 1000);
-        }
-
-        function smash(x, y) {
-            if (clock <= 0) return;
-
-            score++;
-            comboCount++; // 연타 카운트 증가
-            txtScore.innerText = score;
-            
-            const rate = Math.min((score / goal) * 100, 100);
-            gauge.style.width = rate + '%';
-            txtProgress.innerText = Math.floor(rate) + '%';
-
-            popFX(x, y);
-
-            if (navigator.vibrate) navigator.vibrate(30);
-
-            if (score >= goal) {
-                gameOver();
-            } else {
-                // 🎯 핵심 패치: 3연타를 때릴 때마다 위치를 이동하게 조절 (훨씬 쉬워짐)
-                if (comboCount >= 3) {
-                    warpMonster();
-                    comboCount = 0; // 카운트 리셋
-                }
-            }
-        }
-
-        function warpMonster() {
-            // 움직이는 범위를 화면 중앙부(25%~75%)로 좁혀 손가락 피로도 최소화
-            const randomX = Math.floor(Math.random() * 50) + 25; 
-            const randomY = Math.floor(Math.random() * 50) + 25; 
-            
-            monster.style.left = randomX + '%';
-            monster.style.top = randomY + '%';
-            monster.innerText = pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        function popFX(x, y) {
-            const fx = document.createElement('div');
-            fx.className = 'combo-effect';
-            fx.innerText = ['💥 펑!', '🔥 나이스!', '⚡ 퇴치!', '🔨 콰광!'][Math.floor(Math.random() * 4)];
-            fx.style.left = (x - 40) + 'px';
-            fx.style.top = (y - 60) + 'px';
-            
-            field.appendChild(fx);
-            setTimeout(() => fx.remove(), 300);
-        }
-
-        function gameOver() {
-            clearInterval(loop);
-            scrGame.classList.remove('active');
-            scrResult.classList.add('active');
-
-            if (score >= goal) {
-                scrResult.className = 'screen active win';
-                resTitle.innerHTML = '🏆 WINNER! 🏆<br>방학 대개막';
-                resDesc.innerText = '오션중 빌런들을 완벽히 격파했습니다!\n행복한 휴가와 방학이 선생님을 기다립니다! 🚀';
-                celebrate();
-            } else {
-                scrResult.className = 'screen active lose';
-                resTitle.innerHTML = '☠️ GAME OVER ☠️<br>방학 연기 레이드';
-                resDesc.innerText = `빌런의 체력이 아직 ${goal - score} 남았습니다.\n교무실로 리스폰되어 다시 도전하세요!`;
-            }
-        }
-
-        function celebrate() {
-            let duration = 3.5 * 1000;
-            let end = Date.now() + duration;
-
-            (function ticker() {
-                confetti({ particleCount: 7, angle: 60, spread: 60, origin: { x: 0, y: 0.8 }, colors: ['#ff007f', '#00f0ff', '#ffffff'] });
-                confetti({ particleCount: 7, angle: 120, spread: 60, origin: { x: 1, y: 0.8 }, colors: ['#ff007f', '#00f0ff', '#ffffff'] });
-                if (Date.now() < end) requestAnimationFrame(ticker);
-            }());
-        }
-
-        function cleanRoom() {
-            score = 0;
-            clock = 20;
-            comboCount = 0;
-            gauge.style.width = '0%';
-            txtScore.innerText = '0';
-            txtTimer.innerText = '20';
-            txtProgress.innerText = '0%';
-            scrResult.classList.remove('active');
-            scrStart.classList.add('active');
-        }
-    </script>
-</body>
-</html>
+        .lose .result-main { color: #ff3333; text-shadow: 0 0 20px #ff333
