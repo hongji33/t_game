@@ -68,6 +68,13 @@
             text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
         }
 
+        /* 🎯 현재 목표치 슬쩍 보여주는 안내 텍스트 */
+        .info-text {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+
         .btn {
             background: linear-gradient(135deg, var(--primary), #ff0055);
             color: white;
@@ -195,12 +202,13 @@
     <div class="container">
         <div id="scr-start" class="screen active">
             <div class="game-title">오션중 학기말<br>👾 빌런 타격대 👾</div>
+            <div class="info-text">🎯 목표 타격: <span id="txt-start-goal" style="color:var(--secondary); font-weight:bold;">80</span>회</div>
             <button class="btn" id="btn-start">게임 시작</button>
         </div>
 
         <div id="scr-game" class="screen">
             <div class="game-header">
-                <div class="score-box">HIT: <span id="txt-score">0</span> / 80</div>
+                <div class="score-box">HIT: <span id="txt-score">0</span> / <span id="txt-goal">80</span></div>
                 <div class="timer-box">⏱️ <span id="txt-timer">20</span>s</div>
             </div>
             
@@ -227,8 +235,11 @@
     </div>
 
     <script>
-        // 🎯 목표 수치를 80으로 세팅
-        const goal = 80; 
+        // 🎯 주소창에서 값을 읽어오는 스마트 난이도 시스템
+        const urlParams = new URLSearchParams(window.location.search);
+        // 주소 뒤에 아무것도 없으면 기본 80회로 세팅됨
+        let goal = parseInt(urlParams.get('goal')) || 80; 
+
         let score = 0;
         let clock = 20;
         let loop = null;
@@ -244,10 +255,16 @@
         const monster = document.getElementById('target-monster');
         const gauge = document.getElementById('gauge');
         const txtScore = document.getElementById('txt-score');
+        const txtGoal = document.getElementById('txt-goal');
+        const txtStartGoal = document.getElementById('txt-start-goal');
         const txtTimer = document.getElementById('txt-timer');
         const txtProgress = document.getElementById('txt-progress');
         const resTitle = document.getElementById('res-title');
         const resDesc = document.getElementById('res-desc');
+
+        // 시작 화면에 현재 세팅된 난이도 표시
+        txtStartGoal.innerText = goal;
+        txtGoal.innerText = goal;
 
         btnStart.addEventListener('click', runGame);
         btnRetry.addEventListener('click', cleanRoom);
@@ -256,6 +273,7 @@
             e.preventDefault();
             const touch = e.touches[0];
             const rect = field.getBoundingClientRect();
+            smash(touch.clientX - rect.left, touch.clientY - top);
             smash(touch.clientX - rect.left, touch.clientY - rect.top);
         });
 
@@ -331,7 +349,7 @@
             if (score >= goal) {
                 scrResult.className = 'screen active win';
                 resTitle.innerHTML = '🏆 WINNER! 🏆<br>방학 대개막';
-                resDesc.innerText = '오션중 빌런들을 완벽히 격파했습니다!\n행복한 휴가와 방학이 선생님을 기다립니다! 🚀';
+                resDesc.innerText = `오션중 빌런들을 완벽히 격파했습니다!\n행복한 휴가와 방학이 선생님을 기다립니다! 🚀`;
                 celebrate();
             } else {
                 scrResult.className = 'screen active lose';
@@ -351,6 +369,7 @@
             }());
         }
 
+        // 리셋할 때도 주소창에 설정된 값을 계속 유지
         function cleanRoom() {
             score = 0;
             clock = 20;
