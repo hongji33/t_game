@@ -379,12 +379,12 @@
             if (score >= goal) {
                 scrResult.className = 'screen active win';
                 resTitle.innerHTML = '🏆 WINNER! 🏆<br>방학 대개막';
-                resDesc.innerText = `오션중 빌런들을 완벽히 격파했습니다!\n행복한 휴가와 방학이 선생님을 기다립니다! 🚀`;
+                resDesc.innerText = `오션중 빌런들을 완벽히 격파했습니다!\n행복한 휴가와 방학이 여러분을 기다립니다! 🚀`;
                 celebrate();
             } else {
                 scrResult.className = 'screen active lose';
                 resTitle.innerHTML = '☠️ GAME OVER ☠️<br>방학 연기 레이드';
-                resDesc.innerText = `빌런의 체력이 아직 ${goal - score} 남았습니다.\n교무실로 리스폰되어 다시 도전하세요!`;
+                resDesc.innerText = `빌런의 체력이 아직 ${goal - score} 남았습니다.\n교실로 리스폰되어 다시 도전하세요!`;
             }
         }
 
