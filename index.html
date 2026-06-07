@@ -1,1 +1,376 @@
 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>오션중 학기말 빌런 물리치기</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: var(--card-bg);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 화면 공통 */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* 1. 시작 화면 */
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+            line-height: 1.4;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.4);
+            transition: transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 2. 게임 화면 */
+        .header {
+            position: absolute;
+            top: 2rem;
+            width: 85%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .timer { color: #ef4444; }
+
+        .villain-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .villain {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #ef4444;
+            background: #fee2e2;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            border: 3px solid #fca5a5;
+            box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.2);
+            transition: transform 0.05s;
+            word-break: keep-all;
+        }
+
+        .villain.hit {
+            transform: scale(0.9) rotate(3deg);
+            background-color: #fecaca;
+        }
+
+        .progress-container {
+            width: 100%;
+            margin-bottom: 3rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background-color: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #cbd5e1;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #4f46e5);
+            transition: width 0.05s ease-out;
+        }
+
+        /* 타격 이펙트 텍스트 */
+        .hit-effect {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #f59e0b;
+            animation: floatUp 0.4s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-60px) scale(1.3); opacity: 0; }
+        }
+
+        /* 3. 결과 화면 */
+        .result-title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            white-space: pre-line;
+        }
+
+        .success .result-title { color: #10b981; }
+        .fail .result-title { color: #ef4444; }
+        
+        .result-desc {
+            font-size: 1.1rem;
+            color: #64748b;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="start-screen" class="screen active">
+            <h1>오션중 학기말<br>🔥 빌런 물리치기 🔥</h1>
+            <button class="btn" id="start-btn">게임 시작</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="header">
+                <div>목표: <span style="color:#4f46e5">100타!</span></div>
+                <div class="timer">남은 시간: <span id="time-left">20</span>초</div>
+            </div>
+            
+            <div class="villain-area" id="click-zone">
+                <div class="villain" id="villain-text">빌런 이름</div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen">
+            <div class="result-title" id="result-text">결과 메시지</div>
+            <div class="result-desc" id="result-desc">상세 설명</div>
+            <button class="btn" id="retry-btn">다시 하기</button>
+        </div>
+    </div>
+
+    <script>
+        // 게임 상태 변수
+        const targetClicks = 100; // 목표 클릭 수
+        let clicks = 0;
+        let timeLeft = 20;
+        let timerInterval = null;
+        const villains = ['성적 마감 오류 ❌', '나이스 상신 반려 ↩️', '학기말 생기부 지옥 📝'];
+
+        // DOM 요소
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultScreen = document.getElementById('result-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const retryBtn = document.getElementById('retry-btn');
+        const clickZone = document.getElementById('click-zone');
+        const villainText = document.getElementById('villain-text');
+        const progressBar = document.getElementById('progress');
+        const timeLeftSpan = document.getElementById('time-left');
+        
+        const resultText = document.getElementById('result-text');
+        const resultDesc = document.getElementById('result-desc');
+
+        // 이벤트 리스너 (마우스 클릭 & 모바일 터치 둘 다 대응)
+        startBtn.addEventListener('click', startGame);
+        retryBtn.addEventListener('click', resetGame);
+        
+        clickZone.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 모바일 줌/더블탭 방지
+            handleHit(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        clickZone.addEventListener('mousedown', (e) => {
+            // 터치 이벤트가 지원되지 않는 환경(PC)에서만 mousedown 실행
+            if (!('ontouchstart' in window)) {
+                handleHit(e.clientX, e.clientY);
+            }
+        });
+
+        // 게임 시작
+        function startGame() {
+            startScreen.classList.remove('active');
+            gameScreen.classList.add('active');
+            changeVillain();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timeLeftSpan.innerText = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        // 타격 처리
+        function handleHit(x, y) {
+            if (timeLeft <= 0) return;
+
+            clicks++;
+            // 게이지 상승
+            const percent = Math.min((clicks / targetClicks) * 100, 100);
+            progressBar.style.width = percent + '%';
+
+            // 애니메이션 및 빌런 변경 효과
+            villainText.classList.add('hit');
+            setTimeout(() => villainText.classList.remove('hit'), 50);
+            
+            if (clicks % 15 === 0) {
+                changeVillain();
+            }
+
+            // 시각 이펙트 (펑!)
+            createHitEffect(x, y);
+
+            // 스마트폰 진동 효과 (지원하는 기기만)
+            if (navigator.vibrate) navigator.vibrate(20);
+
+            // 게이지 꽉 차면 즉시 승리
+            if (clicks >= targetClicks) {
+                endGame();
+            }
+        }
+
+        // 빌런 무작위 변경
+        function changeVillain() {
+            const randomIndex = Math.floor(Math.random() * villains.length);
+            villainText.innerText = villains[randomIndex];
+        }
+
+        // 펑! 하는 이펙트 글자 생성
+        function createHitEffect(x, y) {
+            const effect = document.createElement('div');
+            effect.className = 'hit-effect';
+            effect.innerText = ['💥 펑!', '🔨 탁!', '🔥 퇴치!'][Math.floor(Math.random() * 3)];
+            effect.style.left = (x - 30) + 'px';
+            effect.style.top = (y - 30) + 'px';
+            
+            document.body.appendChild(effect);
+            setTimeout(() => effect.remove(), 400);
+        }
+
+        // 게임 종료
+        function endGame() {
+            clearInterval(timerInterval);
+            gameScreen.classList.remove('active');
+            resultScreen.classList.add('active');
+
+            if (clicks >= targetClicks) {
+                // 성공
+                resultScreen.className = 'screen active success';
+                resultText.innerHTML = '🎉 성공! 🎉<br>행복한 방학 시작!';
+                resultDesc.innerText = '모든 학기말 업무 빌런을 물리쳤습니다!\n선생님, 고생하셨습니다. 방학을 즐기세요! 😎';
+                // 폭죽 팡팡 터뜨리기
+                triggerConfetti();
+            } else {
+                // 실패
+                resultScreen.className = 'screen active fail';
+                resultText.innerHTML = '😱 실패... 😱<br>방학 연기... 출근합시다';
+                resultDesc.innerText = `빌런의 체력이 아직 ${targetClicks - clicks}만큼 남았습니다.\n나이스 서버가 폭발하기 전에 다시 시도하세요!`;
+            }
+        }
+
+        // 폭죽 이펙트 함수
+        function triggerConfetti() {
+            var duration = 3 * 1000;
+            var end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0, y: 0.8 }
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1, y: 0.8 }
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        // 리셋
+        function resetGame() {
+            clicks = 0;
+            timeLeft = 20;
+            progressBar.style.width = '0%';
+            timeLeftSpan.innerText = timeLeft;
+            resultScreen.classList.remove('active');
+            startScreen.classList.add('active');
+        }
+    </script>
+</body>
+</html>
